@@ -1,0 +1,65 @@
+# ============================================================
+# 语音算法实习冲刺 —— 版本控制忽略规则
+# 原则：只跟踪"人写的东西"（文档 / 代码 / 配置 / 图），
+#       第三方源码、大体积数据集、编译产物、虚拟环境一律忽略。
+# ============================================================
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- C++ 编译产物（coding/build.py 的输出目录）----
+coding/build/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.out
+
+# ---- 第三方源码 / 参考实现（体积大、非本人成果，可随时复原）----
+# WeNet 官方源码：985 文件 / 26 MB，由 curl tarball 拉取
+examples/wenet-main/
+# 官方参考工程（rknn_model_zoo 等）
+examples/rknn_model_zoo-main/
+examples/*/
+
+# ---- 论文 PDF（46 MB，与本地文库重复，不入库）----
+# 论文清单保留在 papers/README.md
+papers/**/*.pdf
+
+# ---- 数据集 / 特征 / 模型权重 ----
+data/
+datasets/
+*.wav
+*.flac
+*.pcm
+*.npy
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.rknn
+runs/
+exp/
+checkpoints/
+
+# ---- 编辑器 / 系统 / 临时文件 ----
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- AI 辅助工具的本地缓存（不入交付记录）----
+.workbuddy/logs/
+.workbuddy/traces/
+.workbuddy/sessions/

@@ -1,0 +1,116 @@
+<svg viewBox="0 0 680 700" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>CTC 前向算法的 (t, s) 概率网格与三种转移</title>
+<desc>目标序列 ab 的扩展序列为 blank, a, blank, b, blank 共 5 行，时间轴 4 帧。从节点 (t=1, s=1) 用三种颜色标出原地不动、前进一格、跳过一格三种转移，并用红色虚线标出跳到 blank 的非法跳跃。下方附以目标 aa 为例的对照说明，解释相邻重复字符为何禁止跳过一格。</desc>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<text x="40" y="30" fill="#2C2C2A" font-size="15" font-weight="500" font-family="sans-serif">CTC 前向：α[t][s] 的 (t, s) 网格与三种合法转移</text>
+<text x="40" y="52" fill="#5F5E5A" font-size="12" font-family="sans-serif">纵轴 s = 扩展序列位置（↓ 增大）　横轴 t = 帧（→ 增大）　示例目标 ab，L=2 → S = 2L+1 = 5 行</text>
+
+<text x="150" y="80" text-anchor="middle" fill="#5F5E5A" font-size="12" font-family="sans-serif">t=0</text>
+<text x="260" y="80" text-anchor="middle" fill="#5F5E5A" font-size="12" font-family="sans-serif">t=1</text>
+<text x="370" y="80" text-anchor="middle" fill="#5F5E5A" font-size="12" font-family="sans-serif">t=2</text>
+<text x="480" y="80" text-anchor="middle" fill="#5F5E5A" font-size="12" font-family="sans-serif">t=3</text>
+
+<text x="105" y="104" text-anchor="end" fill="#888780" font-size="12" font-family="sans-serif">s=0 &#160;&lt;blank&gt;</text>
+<text x="105" y="166" text-anchor="end" fill="#2C2C2A" font-size="14" font-weight="500" font-family="sans-serif">s=1 &#160;a</text>
+<text x="105" y="228" text-anchor="end" fill="#888780" font-size="12" font-family="sans-serif">s=2 &#160;&lt;blank&gt;</text>
+<text x="105" y="290" text-anchor="end" fill="#2C2C2A" font-size="14" font-weight="500" font-family="sans-serif">s=3 &#160;b</text>
+<text x="105" y="352" text-anchor="end" fill="#888780" font-size="12" font-family="sans-serif">s=4 &#160;&lt;blank&gt;</text>
+
+<line x1="159" y1="100" x2="251" y2="100" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="158" y1="104" x2="252" y2="158" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="158" y1="166" x2="252" y2="220" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="156" y1="169" x2="254" y2="279" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+
+<line x1="269" y1="100" x2="361" y2="100" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="268" y1="104" x2="362" y2="158" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="269" y1="224" x2="361" y2="224" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="268" y1="228" x2="362" y2="282" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="269" y1="286" x2="361" y2="286" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="268" y1="290" x2="362" y2="344" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+
+<line x1="379" y1="100" x2="471" y2="100" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="379" y1="162" x2="471" y2="162" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="379" y1="224" x2="471" y2="224" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="379" y1="286" x2="471" y2="286" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="379" y1="348" x2="471" y2="348" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="378" y1="104" x2="472" y2="158" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="378" y1="166" x2="472" y2="220" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="378" y1="228" x2="472" y2="282" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="378" y1="290" x2="472" y2="344" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+<line x1="376" y1="169" x2="474" y2="279" stroke="#B4B2A9" stroke-width="1" fill="none" marker-end="url(#arrS)"/>
+
+<line x1="272" y1="162" x2="358" y2="162" stroke="#185FA5" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<line x1="268" y1="166" x2="362" y2="220" stroke="#3B6D11" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<line x1="266" y1="169" x2="364" y2="279" stroke="#854F0B" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+
+<line x1="266" y1="232" x2="360" y2="340" stroke="#A32D2D" stroke-width="1.4" stroke-dasharray="5 4" fill="none" marker-end="url(#arr)"/>
+<path d="M294 264 L306 276 M306 264 L294 276" stroke="#A32D2D" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+<circle cx="150" cy="100" r="11" fill="none" stroke="#0F6E56" stroke-width="1.4"/>
+<circle cx="150" cy="162" r="11" fill="none" stroke="#0F6E56" stroke-width="1.4"/>
+<circle cx="480" cy="286" r="11" fill="none" stroke="#993C1D" stroke-width="1.4"/>
+<circle cx="480" cy="348" r="11" fill="none" stroke="#993C1D" stroke-width="1.4"/>
+
+<circle cx="150" cy="100" r="6" fill="#5F5E5A"/>
+<circle cx="150" cy="162" r="6" fill="#5F5E5A"/>
+<circle cx="150" cy="224" r="6" fill="#D3D1C7"/>
+<circle cx="150" cy="286" r="6" fill="#D3D1C7"/>
+<circle cx="150" cy="348" r="6" fill="#D3D1C7"/>
+<circle cx="260" cy="100" r="6" fill="#5F5E5A"/>
+<circle cx="260" cy="162" r="6" fill="#5F5E5A"/>
+<circle cx="260" cy="224" r="6" fill="#5F5E5A"/>
+<circle cx="260" cy="286" r="6" fill="#5F5E5A"/>
+<circle cx="260" cy="348" r="6" fill="#D3D1C7"/>
+<circle cx="370" cy="100" r="6" fill="#5F5E5A"/>
+<circle cx="370" cy="162" r="6" fill="#5F5E5A"/>
+<circle cx="370" cy="224" r="6" fill="#5F5E5A"/>
+<circle cx="370" cy="286" r="6" fill="#5F5E5A"/>
+<circle cx="370" cy="348" r="6" fill="#5F5E5A"/>
+<circle cx="480" cy="100" r="6" fill="#5F5E5A"/>
+<circle cx="480" cy="162" r="6" fill="#5F5E5A"/>
+<circle cx="480" cy="224" r="6" fill="#5F5E5A"/>
+<circle cx="480" cy="286" r="6" fill="#5F5E5A"/>
+<circle cx="480" cy="348" r="6" fill="#5F5E5A"/>
+
+<line x1="44" y1="388" x2="64" y2="388" stroke="#185FA5" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<text x="72" y="392" fill="#2C2C2A" font-size="12" font-family="sans-serif">① 原地不动 s → s（重复发同一符号，或持续发 blank）</text>
+<line x1="44" y1="412" x2="64" y2="412" stroke="#3B6D11" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<text x="72" y="416" fill="#2C2C2A" font-size="12" font-family="sans-serif">② 前进一格 s → s+1（发下一个符号）</text>
+<line x1="44" y1="436" x2="64" y2="436" stroke="#854F0B" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<text x="72" y="440" fill="#2C2C2A" font-size="12" font-family="sans-serif">③ 跳过一格 s → s+2（须同时满足下面两个条件）</text>
+<text x="44" y="462" fill="#A32D2D" font-size="12" font-family="sans-serif">✗ ③ 的落点不能是 blank（偶数位）　　✗ ③ 的落点标签不能与起点标签相同（相邻重复字符）</text>
+<text x="44" y="484" fill="#5F5E5A" font-size="12" font-family="sans-serif">深色点 = 可达（α ≠ -inf）；浅色点 = 不可达（-inf）。t 帧时 s 的可达范围是 0 ≤ s ≤ 2t+1，故可达区是向右扩张的斜带。</text>
+<text x="44" y="506" fill="#5F5E5A" font-size="12" font-family="sans-serif">绿圈 = 起点 α[0][0] · α[0][1]；橙圈 = 终点 α[T-1][2L] · α[T-1][2L-1]，两者要用 logaddexp 合并。</text>
+
+<line x1="40" y1="528" x2="640" y2="528" stroke="#D3D1C7" stroke-width="0.5"/>
+<text x="40" y="550" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">对照：为什么「相邻重复字符」必须禁止 ③ —— 以目标 aa 为例（左列 t 帧，右列 t+1 帧）</text>
+
+<text x="86" y="582" text-anchor="end" fill="#2C2C2A" font-size="14" font-weight="500" font-family="sans-serif">s=1 &#160;a</text>
+<text x="86" y="618" text-anchor="end" fill="#888780" font-size="12" font-family="sans-serif">s=2 &#160;&lt;blank&gt;</text>
+<text x="86" y="654" text-anchor="end" fill="#2C2C2A" font-size="14" font-weight="500" font-family="sans-serif">s=3 &#160;a</text>
+
+<line x1="129" y1="578" x2="201" y2="578" stroke="#185FA5" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<line x1="128" y1="582" x2="202" y2="610" stroke="#3B6D11" stroke-width="1.8" fill="none" marker-end="url(#arr)"/>
+<line x1="125" y1="585" x2="205" y2="643" stroke="#A32D2D" stroke-width="1.4" stroke-dasharray="5 4" fill="none" marker-end="url(#arr)"/>
+<path d="M159 608 L171 620 M171 608 L159 620" stroke="#A32D2D" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+<circle cx="120" cy="578" r="6" fill="#5F5E5A"/>
+<circle cx="210" cy="578" r="6" fill="#5F5E5A"/>
+<circle cx="120" cy="614" r="6" fill="#D3D1C7"/>
+<circle cx="210" cy="614" r="6" fill="#D3D1C7"/>
+<circle cx="120" cy="650" r="6" fill="#5F5E5A"/>
+<circle cx="210" cy="650" r="6" fill="#5F5E5A"/>
+
+<text x="250" y="574" fill="#2C2C2A" font-size="12" font-family="sans-serif">① 停在 s=1（合法）：第一个 a 继续占据这一帧，还没有往后走</text>
+<text x="250" y="596" fill="#2C2C2A" font-size="12" font-family="sans-serif">③ 跳到 s=3（禁止）：等于宣称两个 a 都发完了，可这两帧只折叠出一个 a</text>
+<text x="250" y="624" fill="#A32D2D" font-size="12" font-family="sans-serif">✗ 相当于把「其实只发了一个 a」的路径算进 P(aa)，概率被高估</text>
+<text x="250" y="652" fill="#2C2C2A" font-size="12" font-family="sans-serif">正解：① 停一帧 → ② 走到 s=2 发 blank → ② 走到 s=3 发 a，靠 blank 把两个 a 隔开</text>
+</svg>

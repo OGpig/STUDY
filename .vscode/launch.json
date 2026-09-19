@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C++: gdb 调试当前文件 (MinGW)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/coding/build/${fileBasenameNoExtension}.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "F:/data/toolchains/mingw64/bin/gdb.exe",
+      "setupCommands": [
+        {
+          "description": "为 gdb 启用整齐打印",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "关掉 gdb 启动时的索引缓存告警",
+          "text": "-gdb-set data-directory F:/data/toolchains/mingw64/share/gdb",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "C++: 编译调试版（-O0 -g）"
+    },
+    {
+      "name": "C++: 调试并自动喂 tests/<同名>_1.in",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/coding/build/${fileBasenameNoExtension}.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "F:/data/toolchains/mingw64/bin/gdb.exe",
+      "setupCommands": [
+        {
+          "description": "为 gdb 启用整齐打印",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "C++: 编译调试版（-O0 -g）"
+    }
+  ]
+}

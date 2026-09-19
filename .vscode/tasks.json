@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "C++: 编译并运行当前文件",
+      "detail": "g++ 16.2.0 (MinGW-W64)，自动喂 tests/<同名>_1.in",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/coding/build.py", "${file}"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": ["$gcc", "$msCompile"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "C++: 只编译不运行",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/coding/build.py", "${file}", "--no-run"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": ["$gcc", "$msCompile"],
+      "group": "build"
+    },
+    {
+      "label": "C++: 编译并运行（手动输入）",
+      "detail": "不喂输入文件，直接在终端里敲",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/coding/build.py", "${file}", "--manual"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "C++: 用 MSVC 编译并运行",
+      "detail": "cl.exe 14.51 + Windows SDK（脚本已手工拼好 INCLUDE/LIB/PATH）",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/coding/build.py", "${file}", "--cc", "msvc"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "C++: 编译调试版（-O0 -g）",
+      "detail": "给 F5 调试用：关优化、留符号",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["${workspaceFolder}/coding/build.py", "${file}", "--dbg", "--no-run"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "C++: 跑大数据（<同名>_big.in）",
+      "detail": "验证 O(n log n) 真的比 O(n^2) 快",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "${workspaceFolder}/coding/build.py",
+        "${file}",
+        "--in",
+        "${workspaceFolder}/coding/tests/${fileBasenameNoExtension}_big.in"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}

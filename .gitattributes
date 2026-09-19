@@ -1,0 +1,32 @@
+# 统一换行符策略：仓库内一律存 LF，检出一律 LF。
+# 本项目在 Windows 上开发，但脚本/源码要在 WSL/服务器上跑，
+# 若让 Git 自动转 CRLF，会在 Linux 上引入 ^M 导致 shell 脚本执行失败。
+* text=auto eol=lf
+
+# 二进制文件不做任何转换
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.pt   binary
+*.pth  binary
+*.onnx binary
+*.rknn binary
+*.obj  binary
+*.exe  binary
+
+# 明确为文本、需要 diff 的文件
+*.py   text diff=python
+*.cpp  text diff=cpp
+*.h    text diff=cpp
+*.hpp  text diff=cpp
+*.md   text
+*.json text
+*.yaml text
+*.yml  text
+*.svg  text

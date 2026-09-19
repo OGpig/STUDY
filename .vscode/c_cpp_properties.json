@@ -1,0 +1,28 @@
+{
+  "version": 4,
+  "configurations": [
+    {
+      "name": "MinGW64-gcc16 (默认)",
+      "includePath": [
+        "${workspaceFolder}/coding/**",
+        "F:/data/toolchains/mingw64/include/**",
+        "F:/data/toolchains/mingw64/x86_64-w64-mingw32/include/**"
+      ],
+      "defines": ["_WIN32", "UNICODE", "_UNICODE"],
+      "compilerPath": "F:/data/toolchains/mingw64/bin/g++.exe",
+      "compilerArgs": ["-std=c++17", "-Wall", "-Wextra"],
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-gcc-x64"
+    },
+    {
+      "name": "MSVC-x64 (备用)",
+      "includePath": ["${workspaceFolder}/coding/**"],
+      "defines": ["_WIN32", "NOMINMAX", "WIN32_LEAN_AND_MEAN"],
+      "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/18/BuildTools/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-msvc-x64"
+    }
+  ]
+}
