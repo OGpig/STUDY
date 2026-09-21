@@ -200,3 +200,72 @@ $ git ls-tree -r --name-only origin/main | wc -l
    既不丢远端历史，也不需要在共享仓库上冒险。
 5. **"体积大所以不传" 要配一个"可复原方案"** ——
    保留清单 + 下载脚本，比硬塞几十 MB PDF 更专业。
+
+---
+
+# 第三次操作：D2 归档推送（数据准备 + 训练跑通）
+
+## 基本信息
+
+| 项目 | 内容 |
+| --- | --- |
+| 日期 | 2026-09-21 |
+| 系统 / 终端 | Windows / PowerShell |
+| 工作目录 | `F:\embedded\prepare` |
+| 仓库 | STUDY (`ssh://git@ssh.github.com:443/OGpig/STUDY.git`) |
+| 操作前 | 本地与远端同为 `4bf846b`（`git ls-remote` 探测可达 ✅） |
+| 提交 | `85a6760`（D2 归档）+ 本次 git-log 记录 |
+| 推送结果 | `4bf846b..85a6760  main -> main` ✅ 快进推送，无需 force |
+
+## 本次入库内容（25 个文件 / 6949 行）
+
+| 类别 | 文件 |
+| --- | --- |
+| 计划 / 进度 | `roadmap/DAY02.md`、`PROGRESS.md`（补 D2 收尾段 + 看板）、`EXPERIMENTS.md`（新建） |
+| 可视图 | `roadmap/assets/DAY02_conformer-streaming-flow.svg`、`tensorboard/smoke/curves.png` |
+| 数据管线 | `scripts/download_aishell.py` / `check_aishell.py` / `prepare_aishell.py` / `run_prepare.ps1` |
+| 训练链路 | `scripts/run_train.py`、`patch_wenet.py`（25 处）、`patch_torch_libuv.py`（9 处）、`install_env_fix.py` |
+| 绘图工具 | `scripts/plot_tensorboard.py`、`plot_ctc_alignment.py` |
+| 诊断脚本 | `scripts/_diag_batchcount.py`、`_diag_dl_worker.py`（结论可复现，故保留） |
+| 配置 | `work/aishell/conf/{smoke,mid}.yaml`（手写配置，首次入库） |
+| 记录 | `.workbuddy/memory/2026-09-18.md`、`MEMORY.md`、`2026-09-20.md` |
+
+## 遇到的问题
+
+### 问题 6：TensorBoard 的 event 文件该不该入库
+
+- 现象：`work/aishell/tensorboard/` 下的 `events.out.tfevents.*` 是二进制，且**随训练线性增长**
+  （本次两个文件 1.2 MB + 45 KB）。若不处理，`git add -A` 会把它们全部提交。
+- 原因：`.gitignore` 只按目录名排除了 `data/` `exp/` `runs/`，没有覆盖 `tensorboard/` 下的运行产物。
+- 解决：新增一条**窄规则**而不是整目录排除：
+  ```
+  events.out.tfevents.*
+  ```
+  理由是 `curves.png`（曲线图）是**交付证据**要留，而 event 文件能由训练重放再生 ——
+  与"只跟踪人写的东西"原则一致，也避免二进制文件污染 diff。
+
+### 问题 5（复现）：`git add` 再报 CRLF 警告
+
+- 现象：`work/aishell/conf/*.yaml` 两个文件提示 "CRLF will be replaced by LF"。
+- 说明：与第二次操作的**问题 5 同源**（Windows `core.autocrlf=true`），
+  已有 `.gitattributes`（`* text=auto eol=lf`）兜住，仓库内存 LF，**属预期行为，无需处理**。
+
+## 可复用的经验
+
+1. **推送前先 `git ls-remote origin` 探测** —— 一条命令同时确认「认证通 + 远端 HEAD 在哪」，
+   比直接 push 失败后再排查快得多（本次远端 `4ff...` 与本地一致，直接快进）。
+2. **`git add -A --dry-run` 必须先看一眼** —— 这是唯一能拦住"误提交大文件 / 隐私文件"的关口。
+   本次正是靠它发现 event 文件会被带上。
+3. **"归档"要连进度文档一起归档** —— 只推代码不推进度，下次自己都看不出当时做到哪。
+4. **诊断脚本也值得入库** —— 它们记录的"当时怎么证明的"比结论更容易被遗忘。
+
+## 本次归档涉及的工程问题（详情见 `PROGRESS.md`，此处只列索引）
+
+| 问题 | 一句话结论 |
+| --- | --- |
+| torchaudio 2.11 解码需 FFmpeg 共享库 | 装 shared 构建 + `.pth` 注册 DLL 目录，WeNet 源码零改动 |
+| `data.list` 被按 GBK 读 → 静默丢光样本 | 表现为 `ZeroDivisionError`；补 `encoding='utf-8'` |
+| Windows gloo 无 CUDA → DDP 段错误 | 单卡跳过 DDP；**多卡在 Windows 走不通，要上 Linux** |
+| `use_libuv` 报错（提示设 `USE_LIBUV=0` 是误导） | 必须改源码给 TCPStore 显式传 `use_libuv=False` |
+| `final.pt` 是断链（WeNet 自身两个 bug） | 用 `lexists` + 目标名改 `epoch_N.pt` |
+| CER=100% 但 loss 在降 | **判据必须是任务指标 + 平凡基线，不能只看 loss** |
