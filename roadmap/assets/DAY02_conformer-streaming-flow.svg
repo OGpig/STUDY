@@ -1,0 +1,287 @@
+<svg viewBox="0 0 680 1276" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Conformer 流式前向数据流（WeNet U2 unified conformer）</title>
+<desc>分五段描述一条 fbank 特征如何流经 WeNet 的 Conformer 编码器并分两路输出：第一段是 CMVN、Conv2dSubsampling4 下采样四倍与相对位置编码的维度变化；第二段是两个 mask（padding mask 与 chunk mask）的形状与产生位置，chunk mask 是流式的总开关；第三段是十二层 ConformerEncoderLayer 的横向展开，并标出 att_cache 与 cnn_cache 的注入与回写方式；第四段放大单层的 macaron 四步结构与残差、ff_scale=0.5 的作用位置；第五段是编码器输出分 CTC 头与 TransformerDecoder 交叉注意力两路以及三路损失的加权方式。图末给出流式三件套的总结。</desc>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#B4B2A9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#185FA5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#0F6E56" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#3B6D11" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#854F0B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="arrS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#B4B2A9" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<!-- ================= 标题 ================= -->
+<text x="24" y="28" fill="#2C2C2A" font-size="15" font-weight="500" font-family="sans-serif">Conformer 流式前向数据流（WeNet · U2 unified conformer）</text>
+<text x="24" y="50" fill="#5F5E5A" font-size="11" font-family="sans-serif">AISHELL-1 配置：output_size=256 · heads=4 · num_blocks=12 · subsample=4 · cnn_kernel=15</text>
+
+<!-- ================= ① 前端 ================= -->
+<rect x="16" y="66" width="648" height="170" rx="6" fill="#F4F3F0" stroke="#D3D1C7" stroke-width="1"/>
+<text x="28" y="88" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">① 前端：CMVN → 2×Conv2d 下采样 ÷4 → 相对位置编码</text>
+
+<rect x="28" y="104" width="104" height="56" rx="4" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1"/>
+<text x="80" y="127" text-anchor="middle" fill="#2C2C2A" font-size="12" font-family="sans-serif">(B, T_in, 80)</text>
+<text x="80" y="145" text-anchor="middle" fill="#888780" font-size="10.5" font-family="sans-serif">fbank 特征</text>
+
+<line x1="132" y1="132" x2="150" y2="132" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="152" y="104" width="106" height="56" rx="4" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1"/>
+<text x="205" y="127" text-anchor="middle" fill="#2C2C2A" font-size="12" font-family="sans-serif">GlobalCMVN</text>
+<text x="205" y="145" text-anchor="middle" fill="#888780" font-size="10.5" font-family="sans-serif">(x−mean)/√var</text>
+
+<line x1="258" y1="132" x2="278" y2="132" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="280" y="104" width="172" height="56" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.2"/>
+<text x="366" y="123" text-anchor="middle" fill="#185FA5" font-size="12" font-weight="500" font-family="sans-serif">Conv2dSubsampling4</text>
+<text x="366" y="139" text-anchor="middle" fill="#5F5E5A" font-size="10" font-family="sans-serif">Conv(1→256,3×3,s2)+ReLU</text>
+<text x="366" y="153" text-anchor="middle" fill="#5F5E5A" font-size="10" font-family="sans-serif">Conv(256→256,3×3,s2)+ReLU</text>
+
+<line x1="452" y1="132" x2="470" y2="132" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="472" y="104" width="88" height="56" rx="4" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1"/>
+<text x="516" y="127" text-anchor="middle" fill="#2C2C2A" font-size="12" font-family="sans-serif">(B, T′, 256)</text>
+<text x="516" y="145" text-anchor="middle" fill="#888780" font-size="10.5" font-family="sans-serif">T′ = T_in/4</text>
+
+<line x1="560" y1="132" x2="576" y2="132" stroke="#3B6D11" stroke-width="1.2" fill="none" marker-end="url(#arrG)"/>
+
+<rect x="578" y="104" width="86" height="56" rx="4" fill="#EBF2E6" stroke="#3B6D11" stroke-width="1.2"/>
+<text x="621" y="127" text-anchor="middle" fill="#3B6D11" font-size="12" font-family="sans-serif">+ RelPos</text>
+<text x="621" y="145" text-anchor="middle" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">offset 传入</text>
+
+<text x="28" y="180" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">维度账：mel 轴 80→39→19（两个 3×3/s2），展平 256×19=4864 → Linear → 256；时间轴 T_in → T′=T_in/4</text>
+<text x="28" y="198" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">right_context = 6：流式时 chunk 的**输入**要多带 6 帧右上下文，靠「输入重叠」凑，subsampling 自身不做 cache</text>
+<text x="28" y="216" fill="#0F6E56" font-size="10.5" font-family="sans-serif">★ offset 的单位是「编码器输出帧 T′」，不是原始输入帧；它传给 pos_enc 决定位置编码从哪里开始编号</text>
+
+<!-- ================= ② 两个 mask ================= -->
+<rect x="16" y="248" width="648" height="190" rx="6" fill="#F4F3F0" stroke="#D3D1C7" stroke-width="1"/>
+<text x="28" y="270" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">② 流式切断点之一：两个 mask（mask 决定「每一帧能看到多远的未来」）</text>
+
+<text x="28" y="294" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">padding mask — `~make_pad_mask(xs_lens, T)` → (B, 1, T)；在 CMVN **之前**就造好，下采样时同步 ÷4</text>
+<text x="28" y="312" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">chunk mask — `add_optional_chunk_mask()` → 在 **T′ 序列上**划分，所以 chunk_size 的单位是编码器输出帧</text>
+<text x="40" y="330" fill="#854F0B" font-size="10.5" font-family="sans-serif">· use_dynamic_chunk 或 static_chunk_size&gt;0 → subsequent_chunk_mask(T′) → (B, T′, T′)</text>
+<text x="40" y="348" fill="#854F0B" font-size="10.5" font-family="sans-serif">· 两者都不开（非流式推理）→ chunk_masks = masks → (B, 1, T′)</text>
+
+<!-- 4x4 chunk mask 示例 -->
+<rect x="30" y="364" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="43" y="364" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="56" y="364" width="13" height="13" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="69" y="364" width="13" height="13" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="30" y="377" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="43" y="377" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="56" y="377" width="13" height="13" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="69" y="377" width="13" height="13" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="30" y="390" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="43" y="390" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="56" y="390" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="69" y="390" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="30" y="403" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="43" y="403" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="56" y="403" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<rect x="69" y="403" width="13" height="13" fill="#E6F1EE" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="30" y="358" fill="#0F6E56" font-size="10" font-family="sans-serif">subsequent_chunk_mask(4, 2)</text>
+
+<text x="98" y="380" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">query i（行）只能看到本 chunk 内 + 左侧 num_left_chunks 个 chunk 的 key（列）</text>
+<text x="98" y="398" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">chunk_size=16 时：16 × 4 × 10ms = 640ms 音频，这是「延迟」与「精度」的旋钮</text>
+<text x="98" y="416" fill="#0F6E56" font-size="10.5" font-family="sans-serif">★ 训练期一半概率采全上下文（enable_full_context）= U2 的流式/非流式统一</text>
+
+<!-- ================= ③ 12 层 + cache ================= -->
+<rect x="16" y="450" width="648" height="344" rx="6" fill="#F4F3F0" stroke="#D3D1C7" stroke-width="1"/>
+<text x="28" y="472" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">③ 12 × ConformerEncoderLayer 横向展开（四种颜色 = macaron 四步，详见 ④）</text>
+
+<!-- att_cache 注入 -->
+<rect x="126" y="484" width="330" height="26" rx="4" fill="#E6F1EE" stroke="#0F6E56" stroke-width="1.2"/>
+<text x="136" y="501" fill="#0F6E56" font-size="10.5" font-family="sans-serif">att_cache ← 上一 chunk 存下的 K/V</text>
+<line x1="240" y1="510" x2="240" y2="524" stroke="#0F6E56" stroke-width="1.2" fill="none" marker-end="url(#arrT)"/>
+<line x1="360" y1="510" x2="360" y2="524" stroke="#0F6E56" stroke-width="1.2" fill="none" marker-end="url(#arrT)"/>
+
+<rect x="470" y="484" width="194" height="26" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.2"/>
+<text x="480" y="501" fill="#0F6E56" font-size="10.5" font-family="sans-serif">→ 截尾后传给下一 chunk</text>
+
+<!-- 12 个 layer 块 -->
+<rect x="126" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="126" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="126" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="126" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="171" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="171" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="171" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="171" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="216" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="216" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="216" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="216" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="261" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="261" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="261" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="261" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="306" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="306" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="306" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="306" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="351" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="351" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="351" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="351" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="396" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="396" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="396" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="396" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="441" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="441" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="441" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="441" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="486" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="486" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="486" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="486" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="531" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="531" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="531" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="531" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="576" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="576" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="576" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="576" y="610" width="39" height="22" fill="#185FA5"/>
+<rect x="621" y="529" width="39" height="22" fill="#185FA5"/>
+<rect x="621" y="556" width="39" height="22" fill="#993C1D"/>
+<rect x="621" y="583" width="39" height="22" fill="#0F6E56"/>
+<rect x="621" y="610" width="39" height="22" fill="#185FA5"/>
+
+<!-- 行标签 -->
+<text x="118" y="544" text-anchor="end" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">① 前 FFN ×0.5</text>
+<text x="118" y="571" text-anchor="end" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">② MHSA rel_pos</text>
+<text x="118" y="598" text-anchor="end" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">③ Conv 模块</text>
+<text x="118" y="625" text-anchor="end" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">④ 后 FFN ×0.5</text>
+
+<!-- 层号 -->
+<text x="145" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">1</text>
+<text x="190" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">2</text>
+<text x="235" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">3</text>
+<text x="280" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">4</text>
+<text x="325" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">5</text>
+<text x="370" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">6</text>
+<text x="415" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">7</text>
+<text x="460" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">8</text>
+<text x="505" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">9</text>
+<text x="550" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">10</text>
+<text x="595" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">11</text>
+<text x="640" y="646" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">12</text>
+
+<!-- cnn_cache 注入 -->
+<line x1="240" y1="656" x2="240" y2="670" stroke="#0F6E56" stroke-width="1.2" fill="none" marker-end="url(#arrT)"/>
+<line x1="360" y1="656" x2="360" y2="670" stroke="#0F6E56" stroke-width="1.2" fill="none" marker-end="url(#arrT)"/>
+<rect x="126" y="674" width="330" height="26" rx="4" fill="#E6F1EE" stroke="#0F6E56" stroke-width="1.2"/>
+<text x="136" y="691" fill="#0F6E56" font-size="10.5" font-family="sans-serif">cnn_cache ← 上一 chunk 的卷积左上下文</text>
+<rect x="470" y="674" width="194" height="26" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.2"/>
+<text x="480" y="691" fill="#0F6E56" font-size="10.5" font-family="sans-serif">→ 整体替换，不累积</text>
+
+<text x="28" y="722" fill="#0F6E56" font-size="10.5" font-family="sans-serif">att_cache 形状 (elayers, head, cache_t1, d_k×2)：cat(历史 K/V, 本 chunk K/V) 后按 required_cache_size 截尾</text>
+<text x="28" y="740" fill="#0F6E56" font-size="10.5" font-family="sans-serif">cnn_cache 形状 (elayers, 1, 256, 14)：kernel−1 = 14 帧卷积左上下文，整体替换，长度恒定不增长</text>
+<text x="28" y="758" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">两条 cache 的第 0 维都是 elayers=12 —— cache 是**逐层独立**的，形状自带层号，不参与任何计算</text>
+<text x="28" y="776" fill="#854F0B" font-size="10.5" font-family="sans-serif">为什么 subsampling 不做 cache？（源码 encoder.py:314-327 给了三条理由）</text>
+
+<!-- ================= ④ 单层放大 ================= -->
+<rect x="16" y="806" width="648" height="190" rx="6" fill="#F4F3F0" stroke="#D3D1C7" stroke-width="1"/>
+<text x="28" y="828" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">④ 单层内部（ConformerEncoderLayer.forward）：macaron 结构 + 残差 + ff_scale</text>
+
+<rect x="40" y="856" width="104" height="48" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.2"/>
+<text x="92" y="876" text-anchor="middle" fill="#185FA5" font-size="10.5" font-family="sans-serif">LN → FFN</text>
+<text x="92" y="892" text-anchor="middle" fill="#185FA5" font-size="10.5" font-family="sans-serif">× 0.5</text>
+<line x1="144" y1="880" x2="150" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<circle cx="158" cy="880" r="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="158" y="884" text-anchor="middle" fill="#5F5E5A" font-size="11" font-family="sans-serif">+</text>
+<line x1="166" y1="880" x2="180" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="180" y="856" width="104" height="48" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="1.2"/>
+<text x="232" y="876" text-anchor="middle" fill="#993C1D" font-size="10.5" font-family="sans-serif">LN → MHSA</text>
+<text x="232" y="892" text-anchor="middle" fill="#993C1D" font-size="10.5" font-family="sans-serif">rel_pos</text>
+<line x1="284" y1="880" x2="290" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<circle cx="298" cy="880" r="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="298" y="884" text-anchor="middle" fill="#5F5E5A" font-size="11" font-family="sans-serif">+</text>
+<line x1="306" y1="880" x2="320" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="320" y="856" width="104" height="48" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.2"/>
+<text x="372" y="876" text-anchor="middle" fill="#0F6E56" font-size="10.5" font-family="sans-serif">LN → Conv</text>
+<text x="372" y="892" text-anchor="middle" fill="#0F6E56" font-size="10.5" font-family="sans-serif">k=15, causal</text>
+<line x1="424" y1="880" x2="430" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<circle cx="438" cy="880" r="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="438" y="884" text-anchor="middle" fill="#5F5E5A" font-size="11" font-family="sans-serif">+</text>
+<line x1="446" y1="880" x2="460" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="460" y="856" width="104" height="48" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.2"/>
+<text x="512" y="876" text-anchor="middle" fill="#185FA5" font-size="10.5" font-family="sans-serif">LN → FFN</text>
+<text x="512" y="892" text-anchor="middle" fill="#185FA5" font-size="10.5" font-family="sans-serif">× 0.5</text>
+<line x1="564" y1="880" x2="570" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<circle cx="578" cy="880" r="8" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="578" y="884" text-anchor="middle" fill="#5F5E5A" font-size="11" font-family="sans-serif">+</text>
+<line x1="586" y1="880" x2="598" y2="880" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="600" y="862" width="52" height="36" rx="4" fill="#F4F3F0" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="626" y="877" text-anchor="middle" fill="#5F5E5A" font-size="9.5" font-family="sans-serif">norm</text>
+<text x="626" y="890" text-anchor="middle" fill="#5F5E5A" font-size="9.5" font-family="sans-serif">_final</text>
+
+<!-- 残差主干 -->
+<line x1="40" y1="904" x2="40" y2="946" stroke="#A32D2D" stroke-width="1.2" fill="none"/>
+<line x1="40" y1="946" x2="578" y2="946" stroke="#A32D2D" stroke-width="1.2" fill="none"/>
+<line x1="158" y1="946" x2="158" y2="890" stroke="#A32D2D" stroke-width="1.2" fill="none" marker-end="url(#arrM)"/>
+<line x1="298" y1="946" x2="298" y2="890" stroke="#A32D2D" stroke-width="1.2" fill="none" marker-end="url(#arrM)"/>
+<line x1="438" y1="946" x2="438" y2="890" stroke="#A32D2D" stroke-width="1.2" fill="none" marker-end="url(#arrM)"/>
+<line x1="578" y1="946" x2="578" y2="890" stroke="#A32D2D" stroke-width="1.2" fill="none" marker-end="url(#arrM)"/>
+<text x="28" y="966" fill="#A32D2D" font-size="10.5" font-family="sans-serif">残差主干：四步都是 x ← x + f(LN(x))，每步加的 x 是「已经累加过前面残差」的那个 x，所以残差线要一直带着</text>
+<text x="28" y="984" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">★ ff_scale = 0.5 是**写死的**（encoder_layer.py:176），只乘在两个 FFN 上；MHSA 与 Conv 的残差不缩放</text>
+
+<!-- ================= ⑤ 输出两路 ================= -->
+<rect x="16" y="1006" width="648" height="128" rx="6" fill="#F4F3F0" stroke="#D3D1C7" stroke-width="1"/>
+<text x="28" y="1028" fill="#2C2C2A" font-size="13" font-weight="500" font-family="sans-serif">⑤ 输出：encoder_out 分两路 —— CTC 头 与 TransformerDecoder 交叉注意力</text>
+
+<rect x="28" y="1040" width="150" height="56" rx="4" fill="#FFFFFF" stroke="#B4B2A9" stroke-width="1.2"/>
+<text x="103" y="1061" text-anchor="middle" fill="#2C2C2A" font-size="11" font-family="sans-serif">encoder_out</text>
+<text x="103" y="1077" text-anchor="middle" fill="#2C2C2A" font-size="11" font-family="sans-serif">(B, T′, 256)</text>
+<text x="103" y="1091" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">after_norm 之后</text>
+
+<line x1="178" y1="1068" x2="212" y2="1068" stroke="#B4B2A9" stroke-width="1.2" fill="none"/>
+<line x1="212" y1="1050" x2="212" y2="1086" stroke="#B4B2A9" stroke-width="1.2" fill="none"/>
+<line x1="212" y1="1050" x2="222" y2="1050" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+<line x1="212" y1="1086" x2="222" y2="1086" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+
+<rect x="224" y="1036" width="196" height="28" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="1.2"/>
+<text x="234" y="1054" fill="#185FA5" font-size="10.5" font-family="sans-serif">CTC 头：linear→log_softmax</text>
+<rect x="224" y="1072" width="196" height="28" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="1.2"/>
+<text x="234" y="1090" fill="#993C1D" font-size="10.5" font-family="sans-serif">Decoder：交叉注意力</text>
+
+<line x1="420" y1="1050" x2="440" y2="1050" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+<line x1="420" y1="1086" x2="440" y2="1086" stroke="#B4B2A9" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
+<text x="444" y="1054" fill="#185FA5" font-size="10.5" font-family="sans-serif">loss_ctc</text>
+<text x="444" y="1090" fill="#993C1D" font-size="10.5" font-family="sans-serif">loss_att</text>
+
+<rect x="522" y="1036" width="130" height="60" rx="4" fill="#FFFFFF" stroke="#A32D2D" stroke-width="1.2"/>
+<text x="587" y="1058" text-anchor="middle" fill="#A32D2D" font-size="10.5" font-family="sans-serif">loss = w·ctc</text>
+<text x="587" y="1074" text-anchor="middle" fill="#A32D2D" font-size="10.5" font-family="sans-serif">+ (1−w)·att</text>
+<text x="587" y="1090" text-anchor="middle" fill="#888780" font-size="9.5" font-family="sans-serif">AISHELL: w=0.3</text>
+
+<text x="28" y="1104" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">CTC 头输出 blank_id = 0（与 torch.nn.CTCLoss 默认一致）；Decoder 交叉注意力用 encoder_mask 屏蔽 padding</text>
+<text x="28" y="1120" fill="#5F5E5A" font-size="10.5" font-family="sans-serif">ctc_weight 的三种取值：=1.0 只用 CTC（loss_att=None）｜ =0.0 只用 attention（loss_ctc=None）｜ 0&lt;w&lt;1 联合训练</text>
+
+<!-- ================= 总结 ================= -->
+<rect x="16" y="1146" width="648" height="116" rx="6" fill="#EBF2E6" stroke="#3B6D11" stroke-width="1.2"/>
+<text x="28" y="1168" fill="#3B6D11" font-size="13" font-weight="500" font-family="sans-serif">流式三件套（缺一不可）</text>
+<text x="28" y="1192" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">① chunk mask   —— 限制「每帧能看到多远」，决定延迟上限；训练期动态 chunk + 半数全上下文 = U2 统一</text>
+<text x="28" y="1210" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">② att_cache    —— 把历史 K/V 带过 chunk 边界（累积后按 required_cache_size 截尾）</text>
+<text x="28" y="1228" fill="#2C2C2A" font-size="10.5" font-family="sans-serif">③ cnn_cache    —— 把卷积左上下文带过边界（kernel−1 = 14 帧，整体替换）</text>
+<text x="28" y="1248" fill="#854F0B" font-size="10.5" font-family="sans-serif">＋ subsampling 不做 cache，靠 chunk 输入多带 right_context=6 帧重叠来补右上下文 → 板端 C++ runtime 照此实现</text>
+</svg>

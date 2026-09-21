@@ -59,6 +59,10 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
+# ---- TensorBoard 运行产物（event 文件是二进制，随训练线性增长）----
+# 曲线图（curves.png）是交付证据，保留；event 文件可由训练重放再生
+events.out.tfevents.*
+
 # ---- AI 辅助工具的本地缓存（不入交付记录）----
 .workbuddy/logs/
 .workbuddy/traces/
